@@ -187,3 +187,20 @@ graphDB.getPipetype = function(name) {
 graphDB.fauxPipetype = function(graph, args, maybe_gremlin) {      // if you can't find a pipe type
     return maybe_gremlin || 'pull'                                  // just keep things flowing along
 }
+
+// BUILT-IN PIPE TYPES
+
+graphDB.addPipetype('vertex', function(graph, args, gremlin, state) {
+    if(!state.vertices)
+      state.vertices = graph.findVertices(args)                     // state initialization
+  
+    if(!state.vertices.length)                                      // all done
+      return 'done'
+  
+    var vertex = state.vertices.pop()                               // OPT: this relies on cloning the vertices
+    return graphDB.makeGremlin(vertex, gremlin.state)                // we can have incoming gremlins from as/back queries
+  })
+
+graphDB.addPipetype('in',   graphDB.simpleTraversal('in'))
+graphDB.addPipetype('out',  graphDB.simpleTraversal('out'))
+graphDB.addPipetype('both', graphDB.simpleTraversal('both'))
