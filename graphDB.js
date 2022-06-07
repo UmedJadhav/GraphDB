@@ -204,3 +204,79 @@ graphDB.addPipetype('vertex', function(graph, args, gremlin, state) {
 graphDB.addPipetype('in',   graphDB.simpleTraversal('in'))
 graphDB.addPipetype('out',  graphDB.simpleTraversal('out'))
 graphDB.addPipetype('both', graphDB.simpleTraversal('both'))
+
+graphDB.addPipetype('property', function(graph, args, gremlin, state) {
+    if(!gremlin) return 'pull'                                      // query initialization
+    gremlin.result = gremlin.vertex[args[0]]
+    return gremlin.result == null ? false : gremlin                 // undefined or null properties kill the gremlin
+})
+  
+graphDB.addPipetype('unique', function(graph, args, gremlin, state) {
+    if(!gremlin) return 'pull'                                      // query initialization
+    if(state[gremlin.vertex._id]) return 'pull'                     // we've seen this gremlin, so get another instead
+    state[gremlin.vertex._id] = true
+    return gremlin
+})
+  
+graphDB.addPipetype('filter', function(graph, args, gremlin, state) {
+    if(!gremlin) return 'pull'                                      // query initialization
+
+    if(typeof args[0] == 'object')                                  // filter by object
+        return graphDB.objectFilter(gremlin.vertex, args[0])
+            ? gremlin : 'pull'
+
+    if(typeof args[0] != 'function') {
+        graphDB.error('Filter arg is not a function: ' + args[0])
+        return gremlin                                                // keep things moving
+    }
+
+    if(!args[0](gremlin.vertex, gremlin)) return 'pull'             // gremlin fails filter function
+    return gremlin
+})
+  
+graphDB.addPipetype('take', function(graph, args, gremlin, state) {
+    state.taken = state.taken || 0                                  // state initialization
+
+    if(state.taken == args[0]) {
+        state.taken = 0
+        return 'done'                                                 // all done
+    }
+
+    if(!gremlin) return 'pull'                                      // query initialization
+    state.taken++                                                   // THINK: if this didn't mutate state, we could be more
+    return gremlin                                                  // cavalier about state management (but run the GC hotter)
+})
+
+
+graphDB.addPipetype('as', function(graph, args, gremlin, state) {
+    if(!gremlin) return 'pull'                                      // query initialization
+    gremlin.state.as = gremlin.state.as || {}                       // initialize gremlin's 'as' state
+    gremlin.state.as[args[0]] = gremlin.vertex                      // set label to the current vertex
+    return gremlin
+  })
+  
+graphDB.addPipetype('back', function(graph, args, gremlin, state) {
+    if(!gremlin) return 'pull'                                      // query initialization
+    return graphDB.gotoVertex(gremlin, gremlin.state.as[args[0]])    // TODO: check for nulls
+})
+  
+graphDB.addPipetype('except', function(graph, args, gremlin, state) {
+    if(!gremlin) return 'pull'                                      // query initialization
+    if(gremlin.vertex == gremlin.state.as[args[0]]) return 'pull'   // TODO: check for nulls
+    return gremlin
+})
+  
+graphDB.addPipetype('merge', function(graph, args, gremlin, state) {
+    //// THINK: merge and back are very similar...
+    if(!state.vertices && !gremlin) return 'pull'                   // query initialization
+
+    if(!state.vertices || !state.vertices.length) {                 // state initialization
+        var obj = (gremlin.state||{}).as || {}
+        state.vertices = args.map(function(id) {return obj[id]}).filter(Boolean)
+    }
+
+    if(!state.vertices.length) return 'pull'                        // done with this batch
+
+    var vertex = state.vertices.pop()
+    return graphDB.makeGremlin(vertex, gremlin.state)
+})
