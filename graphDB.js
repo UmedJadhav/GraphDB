@@ -160,3 +160,30 @@ graphDB.Q.run = function() {                                       // our virtua
   
     return results
   }
+
+graphDB.Q.add = function(pipetype, args) {                         // add a new step to the query
+    var step = [pipetype, args]
+    this.program.push(step)                                         // step is an array: first the pipe type, then its args
+    return this
+}
+
+graphDB.Pipetypes = {}                                             // every pipe has a type
+
+graphDB.addPipetype = function(name, fun) {                        // adds a new method to our query object
+graphDB.Pipetypes[name] = fun
+graphDB.Q[name] = function() {
+    return this.add(name, [].slice.apply(arguments)) }            // capture the pipetype and args
+}
+
+graphDB.getPipetype = function(name) {
+    var pipetype = graphDB.Pipetypes[name]                           // a pipe type is just a function
+
+    if(!pipetype)
+        graphDB.error('Unrecognized pipe type: ' + name)
+
+    return pipetype || graphDB.fauxPipetype
+}
+
+graphDB.fauxPipetype = function(graph, args, maybe_gremlin) {      // if you can't find a pipe type
+    return maybe_gremlin || 'pull'                                  // just keep things flowing along
+}
