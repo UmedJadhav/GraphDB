@@ -312,4 +312,84 @@ graphDB.simpleTraversal = function(dir) {                          // handles ba
       return graphDB.gotoVertex(state.gremlin, vertex)
     }
   }
+
+
+graphDB.makeGremlin = function(vertex, state) {                    // gremlins are simple creatures:
+    return {vertex: vertex, state: state || {} }                    // a current vertex, and some state
+  }
+  
+graphDB.gotoVertex = function(gremlin, vertex) {                   // clone the gremlin
+    return graphDB.makeGremlin(vertex, gremlin.state)                // THINK: add path tracking here?
+}
+  
+graphDB.filterEdges = function(filter) {
+    return function(edge) {
+        if(!filter)                                                   // if there's no filter, everything is valid
+        return true
+
+        if(typeof filter == 'string')                                 // if the filter is a string, the label must match
+        return edge._label == filter
+
+        if(Array.isArray(filter))                                     // if the filter is an array, the label must be in it
+        return !!~filter.indexOf(edge._label)
+
+        return graphDB.objectFilter(edge, filter)                      // try the filter as an object
+    }
+}
+
+graphDB.objectFilter = function(thing, filter) {                   // thing has to match all of filter's properties
+    for(var key in filter)
+      if(thing[key] !== filter[key])
+        return false
+  
+    return true
+  }
+  
+graphDB.cleanVertex = function(key, value) {                       // for JSON.stringify
+    return (key == '_in' || key == '_out') ? undefined : value
+}
+
+graphDB.cleanEdge = function(key, value) {
+    return (key == '_in' || key == '_out') ? value._id : value
+}
+
+graphDB.jsonify = function(graph) {                                // kids, don't hand code JSON
+    return '{"V":' + JSON.stringify(graph.vertices, graphDB.cleanVertex)
+        + ',"E":' + JSON.stringify(graph.edges,    graphDB.cleanEdge)
+        + '}'
+}
+
+graphDB.parseJSON = function(str) {
+    try {
+      return JSON.parse(str)
+    } catch(err) {
+      graphDB.error('Invalid JSON', err)
+      return null
+    }
+  }
+  
+graphDB.cloneflat = function(graph) {
+    return graphDB.parseJSON(graphDB.jsonify(graph))
+}
+  
+graphDB.clone = function(graph) {
+    var G = graphDB.cloneflat(graph)
+    return graphDB.graph(G.V, G.E)
+}
+  
+graphDB.persist = function(graph, name) {
+    name = name || 'graph'
+    localStorage.setItem('graphDB::'+name, graph)
+}
+  
+graphDB.depersist = function (name) {
+    name = 'graphDB::' + (name || 'graph')
+    var flatgraph = localStorage.getItem(name)
+    return graphDB.fromString(flatgraph)
+}
+
+graphDB.error = function(msg) {
+    console.log(msg)
+    return false
+}
   
