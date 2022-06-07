@@ -1,0 +1,17 @@
+{
+  "name": "graphdb",
+  "version": "1.0.0",
+  "description": "A tiny in-memory Graph DB",
+  "main": "graphDB.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "graph-db"
+  ],
+  "author": "Umed Jadhav",
+  "license": "MIT",
+  "dependencies": {
+    "gulp": "^4.0.2"
+  }
+}
