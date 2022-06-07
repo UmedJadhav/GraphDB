@@ -280,3 +280,36 @@ graphDB.addPipetype('merge', function(graph, args, gremlin, state) {
     var vertex = state.vertices.pop()
     return graphDB.makeGremlin(vertex, gremlin.state)
 })
+
+graphDB.simpleTraversal = function(dir) {                          // handles basic in, out and both pipetypes
+
+    function get_edges(graph, dir, vertex, filter) {                // get edges that match our query
+      var find_method = dir === 'out' ? 'findOutEdges' : 'findInEdges'
+      var other_side  = dir === 'out' ? '_in' : '_out'
+  
+      return graph[find_method](vertex)
+        .filter(graphDB.filterEdges(filter))
+        .map(function(edge) { return edge[other_side] })
+    }
+  
+    return function(graph, args, gremlin, state) {
+      if(!gremlin && (!state.edges || !state.edges.length))         // query initialization
+        return 'pull'
+  
+      if(!state.edges || !state.edges.length) {                     // state initialization
+        state.gremlin = gremlin
+        state.edges = get_edges(graph, dir, gremlin.vertex, args[0])
+  
+        if(dir === 'both')
+          state.edges = state.edges.concat(
+            get_edges(graph, 'out', gremlin.vertex, args[0]))
+      }
+  
+      if(!state.edges.length)                                       // all done
+        return 'pull'
+  
+      var vertex = state.edges.pop()                                // use up an edge
+      return graphDB.gotoVertex(state.gremlin, vertex)
+    }
+  }
+  
