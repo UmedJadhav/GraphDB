@@ -70,4 +70,28 @@ graphDB.G.findVertices = function(args) {                          // our genera
         return this.findVerticesByIds(args)
 }
   
-  
+graphDB.G.findVerticesByIds = function(ids) {
+  return ids.length == 1
+         ? [].concat( this.findVertexById(ids[0]) || [] )
+         : ids.map( this.findVertexById.bind(this) ).filter(Boolean) }
+
+graphDB.G.findVertexById = function(vertex_id) {
+    return this.vertexIndex[vertex_id]
+}
+
+graphDB.G.searchVertices = function(filter) {                      // find vertices that match obj's key-value pairs
+    return this.vertices.filter(function(vertex) {
+        return graphDB.objectFilter(vertex, filter)
+    })
+}
+
+graphDB.G.findOutEdges = function(vertex) { return vertex._out; }
+graphDB.G.findInEdges  = function(vertex) { return vertex._in;  }
+
+graphDB.G.toString = function() { return graphDB.jsonify(this) }    // serialization
+
+graphDB.fromString = function(str) {                               // another graph constructor
+  var obj = graphDB.parseJSON(str)                                 // this could throw
+  if(!obj) return null
+  return graphDB.graph(obj.V, obj.E)
+}
