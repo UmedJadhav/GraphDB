@@ -392,4 +392,21 @@ graphDB.error = function(msg) {
     console.log(msg)
     return false
 }
-  
+
+graphDB.T = []                                                     // transformers (more than meets the eye)
+
+graphDB.addTransformer = function(fun, priority) {
+  if(typeof fun != 'function')
+    return graphDB.error('Invalid transformer function')
+
+  for(var i = 0; i < graphDB.T.length; i++)                        // OPT: binary search
+    if(priority > graphDB.T[i].priority) break
+
+  graphDB.T.splice(i, 0, {priority: priority, fun: fun})
+}
+
+graphDB.transform = function(program) {
+  return graphDB.T.reduce(function(acc, transformer) {
+    return transformer.fun(acc)
+  }, program)
+}
