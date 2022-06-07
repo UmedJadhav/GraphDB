@@ -410,3 +410,30 @@ graphDB.transform = function(program) {
     return transformer.fun(acc)
   }, program)
 }
+
+graphDB.addAlias = function(newname, newprogram) {
+    graphDB.addPipetype(newname, function() {})                      // because there's no method catchall in js
+    newprogram = newprogram.map(function(step) {
+      return [step[0], step.slice(1)]                               // [['out', 'parent']] => [['out', ['parent']]]
+    })
+    // defaults = defaults || []                                    // default arguments for the alias
+    graphDB.addTransformer(function(program) {
+      return program.reduce(function(acc, step) {
+        if(step[0] != newname) return acc.concat([step])
+        return acc.concat(newprogram)
+      }, [])
+    }, 100)                                                         // these need to run early, so they get a high priority
+  }
+
+
+graphDB.extend = function(list, defaults) {
+    return Object.keys(defaults).reduce(function(acc, key) {
+      if(typeof list[key] != 'undefined') return acc
+      acc[key] = defaults[key]
+      return acc
+    }, list)
+  }
+  
+graphDB.remove = function(list, item) {
+    return list.splice(list.indexOf(item), 1)
+  }
