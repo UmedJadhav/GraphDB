@@ -2,7 +2,7 @@
 
 
 # Overview
-GraphDB consists of two main parts: graphs and queries.
+GraphDB consists of two main parts: graphs storage service and efficient query mechanism over the graph.
 
 ### Construction
 - A graph contains vertices and edges, and provides access to query initializers like g.v()
